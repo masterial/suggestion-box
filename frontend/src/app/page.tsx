@@ -11,11 +11,11 @@ export default function HomePage() {
 
   return (
     <main className="flex flex-1">
-      <RandomSuggestionSpawner />
       {/* Left column */}
       <div className="w-80 flex-shrink-0 border-r border-gray-700 overflow-y-auto p-4">
         <h1 className="text-lg font-bold mb-4">Suggestions</h1>
         <NewSuggestionForm />
+        <RandomSuggestionSpawner />
         <SuggestionList onSelect={(id) => setSelectedId(id)} />
       </div>
 

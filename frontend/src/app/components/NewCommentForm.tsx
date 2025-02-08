@@ -5,17 +5,22 @@ import { useSuggestionContext } from "@/context/SuggestionContext";
 
 interface NewCommentFormProps {
   suggestionId: string;
+  onCommentAdded: () => void;
 }
 
-export function NewCommentForm({ suggestionId }: NewCommentFormProps) {
+export function NewCommentForm({ suggestionId, onCommentAdded }: NewCommentFormProps) {
   const { addComment } = useSuggestionContext();
   const [author, setAuthor] = useState("");
   const [text, setText] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!author || !text) return;
-    addComment(suggestionId, author, text);
+
+    await addComment(suggestionId, author, text);
+
+    onCommentAdded();
+
     setAuthor("");
     setText("");
   };

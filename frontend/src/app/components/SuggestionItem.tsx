@@ -25,8 +25,8 @@ export function SuggestionItem({ suggestion, onClick }: SuggestionItemProps) {
     >
       <h4 className="text-sm font-semibold">{suggestion.title}</h4>
       <p className="text-xs text-gray-400 mt-1">
-        {suggestion.createdAt.toLocaleDateString()} @
-        {suggestion.createdAt.toLocaleTimeString()}
+        {new Date(suggestion.createdAt).toLocaleDateString()} @
+        {new Date(suggestion.createdAt).toLocaleTimeString()}
       </p>
       <p className="text-xs text-gray-400 italic">{suggestion.author}</p>
     </div>

@@ -1,64 +1,81 @@
-"use client";
+"use client"; 
 
-import React, { createContext, useContext, useState } from "react";
-import { mockSuggestions } from "@/data/mockData";
-import { generateRandomSuggestion } from "@/utils/randomGenerator";
-import { Suggestion } from "@/types";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { generateRandomSuggestion } from "@/utils/randomGenerator"; 
+import { Suggestion, Comment } from "@/types";
 
 interface SuggestionContextValue {
   suggestions: Suggestion[];
-  addSuggestion: (title: string, description: string, author: string) => void;
-  addComment: (suggestionId: string, author: string, text: string) => void;
-  generateRandom: () => void;
+  addSuggestion: (title: string, description: string, author: string) => Promise<void>;
+  addComment: (suggestionId: string, author: string, text: string) => Promise<void>;
+  generateRandom: () => Promise<void>;
 }
 
-const SuggestionContext = createContext<SuggestionContextValue | undefined>(
-  undefined
-);
+const SuggestionContext = createContext<SuggestionContextValue | undefined>(undefined);
 
-export const SuggestionProvider = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
-  const [suggestions, setSuggestions] = useState<Suggestion[]>(mockSuggestions);
+export const SuggestionProvider = ({ children }: { children: React.ReactNode }) => {
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
 
-  const addSuggestion = (title: string, description: string, author: string) => {
-    const newSuggestion: Suggestion = {
-      id: `sug-${Date.now()}`,
-      title,
-      description,
-      author,
-      createdAt: new Date(),
-      comments: [],
-    };
-    setSuggestions((prev) => [newSuggestion, ...prev]);
+  useEffect(() => {
+    (async function loadSuggestions() {
+      try {
+        const res = await fetch("http://localhost:4000/api/suggestions");
+        const data = await res.json();
+        setSuggestions(data);
+      } catch (err) {
+        console.error("Failed to fetch suggestions", err);
+      }
+    })();
+  }, []);
+
+  const addSuggestion = async (title: string, description: string, author: string) => {
+    try {
+      const res = await fetch("http://localhost:4000/api/suggestions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, description, author }),
+      });
+      if (!res.ok) throw new Error("Error creating suggestion");
+      const newSuggestion: Suggestion = await res.json();
+
+      setSuggestions((prev) => [newSuggestion, ...prev]);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const addComment = (suggestionId: string | null, author: string, text: string) => {
-    setSuggestions((prev) =>
-      prev.map((sug) =>
-        sug.id === suggestionId
-          ? {
-              ...sug,
-              comments: [
-                ...sug.comments,
-                {
-                  id: `cmt-${Date.now()}`,
-                  author,
-                  text,
-                  createdAt: new Date(),
-                },
-              ],
-            }
-          : sug
-      )
-    );
+  const addComment = async (suggestionId: string, author: string, text: string) => {
+    try {
+      const res = await fetch(`http://localhost:4000/api/suggestions/${suggestionId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ author, text }),
+      });
+      if (!res.ok) throw new Error("Error creating comment");
+      const newComment: Comment = await res.json();
+
+      setSuggestions((prev) =>
+        prev.map((sug) =>
+          sug.id === suggestionId
+            ? {
+                ...sug,
+                comments: sug.comments ? [...sug.comments, newComment] : [newComment],
+              }
+            : sug
+        )
+      );
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const generateRandom = () => {
-    const randomSuggestion = generateRandomSuggestion();
-    setSuggestions((prev) => [randomSuggestion, ...prev]);
+  const generateRandom = async () => {
+    const randomLocal = generateRandomSuggestion();
+    try {
+      await addSuggestion(randomLocal.title, randomLocal.description, randomLocal.author);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -70,12 +87,10 @@ export const SuggestionProvider = ({
   );
 };
 
-export const useSuggestionContext = (): SuggestionContextValue => {
-  const context = useContext(SuggestionContext);
-  if (!context) {
-    throw new Error(
-      "useSuggestionContext must be used within a SuggestionProvider"
-    );
+export function useSuggestionContext() {
+  const ctx = useContext(SuggestionContext);
+  if (!ctx) {
+    throw new Error("useSuggestionContext must be used within a SuggestionProvider");
   }
-  return context;
-};
+  return ctx;
+}
