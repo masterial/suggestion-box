@@ -1,4 +1,4 @@
-## suggestion-box
+## suggestion-box-frontend
 
 ```bash
 npm run dev
